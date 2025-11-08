@@ -1,32 +1,29 @@
-// alu.v
+
 `timescale 1ns/1ps
 
-module alu #(
-    parameter WIDTH = 32
-)(
+module alu #(parameter WIDTH = 32)
+(
     input  wire [3:0] op_code,
     input  wire [WIDTH-1:0] a,
     input  wire [WIDTH-1:0] b,
     output reg  [WIDTH-1:0] result,
     output reg             zero,
-    output reg             carry,     // unsigned carry-out or borrow flag
-    output reg             overflow,  // signed overflow flag
-    output reg             negative   // msb of result
+    output reg             carry,     
+    output reg             overflow,  
+    output reg             negative   
 );
 
-    // useful localparams
-    localparam SHAMT_WIDTH = $clog2(WIDTH); // bits required for shift amount
+    localparam SHAMT_WIDTH = $clog2(WIDTH); 
 
-    // temporary wider variable for add/sub to detect carry
     wire [WIDTH:0] add_full;
     wire [WIDTH:0] sub_full;
 
     assign add_full = {1'b0, a} + {1'b0, b};
     assign sub_full = {1'b0, a} - {1'b0, b};
 
-    // combinational ALU
+ 
     always @* begin
-        // defaults
+    
         result   = {WIDTH{1'b0}};
         zero     = 1'b0;
         carry    = 1'b0;
@@ -34,34 +31,30 @@ module alu #(
         negative = 1'b0;
 
         case (op_code)
-            4'b0000: result = a;                      // PASS A
-            4'b0001: result = a + b;                  // ADD
-            4'b0010: result = a - b;                  // SUB
-            4'b0011: result = a & b;                  // AND
-            4'b0100: result = a | b;                  // OR
-            4'b0101: result = a ^ b;                  // XOR
-            4'b0110: result = ~a;                     // NOT A
-            4'b0111: result = a << b[SHAMT_WIDTH-1:0]; // SLL
-            4'b1000: result = a >> b[SHAMT_WIDTH-1:0]; // SRL (logical)
-            4'b1001: result = $signed(a) >>> b[SHAMT_WIDTH-1:0]; // SRA (arith)
-            4'b1010: result = a * b;                  // MUL (synthesis: DSPs)
+            4'b0000: result = a;                     
+            4'b0001: result = a + b;                  
+            4'b0010: result = a - b;                  
+            4'b0011: result = a & b;                 
+            4'b0100: result = a | b;                  
+            4'b0101: result = a ^ b;                 
+            4'b0110: result = ~a;                   
+            4'b0111: result = a << b[SHAMT_WIDTH-1:0]; 
+            4'b1000: result = a >> b[SHAMT_WIDTH-1:0]; 
+            4'b1001: result = $signed(a) >>> b[SHAMT_WIDTH-1:0];
+            4'b1010: result = a * b;                  
             default: result = {WIDTH{1'b0}};
         endcase
 
-        // flags
         zero = (result == {WIDTH{1'b0}});
 
-        // carry and overflow: compute only for add/sub opcodes
         case (op_code)
-            4'b0001: begin // ADD
-                carry = add_full[WIDTH]; // unsigned carry-out
-                // signed overflow: (a[msb]==b[msb]) && (result[msb]!=a[msb])
+            4'b0001: begin 
+                carry = add_full[WIDTH]; 
                 overflow = (~a[WIDTH-1] & ~b[WIDTH-1] & result[WIDTH-1]) |
                            (a[WIDTH-1] & b[WIDTH-1] & ~result[WIDTH-1]);
             end
             4'b0010: begin // SUB (a - b)
-                carry = sub_full[WIDTH]; // borrow = ~carry in some conventions
-                // signed overflow for subtraction: (a[msb]!=b[msb]) && (result[msb]!=a[msb])
+                carry = sub_full[WIDTH]; 
                 overflow = (a[WIDTH-1] & ~b[WIDTH-1] & ~result[WIDTH-1]) |
                            (~a[WIDTH-1] & b[WIDTH-1] & result[WIDTH-1]);
             end
